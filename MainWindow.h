@@ -1,97 +1,68 @@
 #pragma once
 
-#include "SFML/Graphics.hpp"
-#include "SFML/Audio.hpp"
+#include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
+#include <windows.h>
+#include <random>
 #include "RoundedRectangleShape.h"
 #include "Button.h"
-#include <windows.h>
+#include "Network.h"
+#include "Chess.h"
 
 class MainWindow
 {
 public:
-
-    enum class Color
+    enum class Mode
     {
-        White,
-        Black
-    };
-
-    enum class Turn
-    {
-        White,
-        Black,
-        Neither
-    };
-
-    enum class Type
-    {
-        Pawn,
-        Knight,
-        Bishop,
-        Rook,
-        Queen,
-        King
-    };
-
-    struct Piece
-    {
-        sf::Sprite sprite;
-        Color color{};
-        Type type{};
-    };
-
-    struct MovingPiece
-    {
-        Piece* piece;
-        sf::Vector2i startTile;
-        sf::Vector2i finalTile;
+        Normal,
+        Online,
+        AI
     };
 
     sf::RenderWindow window;
-    WINDOWPLACEMENT m_wpPrev{ sizeof(m_wpPrev) };
+    WINDOWPLACEMENT wpPrev{ sizeof(wpPrev) };
     std::string resourcesPath;
-    int edge{};
+    int edge{ 0 };
 
-    Piece* chessboard[8][8]{ nullptr };
-    bool possibleMoves[8][8]{ false };
-
-    sf::Sound pieceMovedSound;
-    sf::Sound pieceTakenSound;
-    sf::Sound sliderSound;
-    sf::Sound mouseOverSound;
+    sf::Thread networkingThread;
+    sf::Mutex lock;
+    std::mt19937 mt;
 
     sf::Sprite background;
-    sf::RectangleShape hoveredSquare;
-    sf::RectangleShape hoveredPossibleMove;
+    sf::RectangleShape selectedSquareHighlight;
+    sf::RectangleShape hoveredPMHighlight;
     sf::RectangleShape pausedBackground;
+    sf::Vector2i hoveredPMSquare;
+    sf::Vector2i heldPieceSquare;
 
-    Turn turn{ Turn::White };
-    Color playingAs{ Color::White };
-
-    MovingPiece movingPiece{};
+    // Game state
+    Node* root;
+    GameInstance* session;
+    Mode mode;
 
     sf::Font Youthome;
     sf::Font AndikaNewBasic;
-    sf::Color themeColor{ 110, 159, 194 };
+    sf::Color themeColor;
+    sf::Color windowColor;
+    sf::String newFpsValue;
+    sf::String pieceSet;
 
     float pieceMovementSpeed;
     int averageFrameRate;
-    int possibleMoveXIndex{ -1 };
-    int possibleMoveYIndex{ -1 };
-    int heldPieceXIndex{ -1 };
-    int heldPieceYIndex{ -1 };
-    int endGame{ -1 };
+    int menuDepth;
 
-    bool holdingSliderArrow{ false };
-    bool fpsCapChanged{ false };
-    bool paused{ false };
-    bool pieceMoving{ false };
-    bool audioOn;
-    
-    sf::String newFpsValue;
-    sf::String theme{ "Theme Stylish" };
+    bool sessionUpdated;
+    bool holdingSliderArrow;
+    bool fpsCapChanged;
+    bool paused;
 
+    // User Interface
     Button resume;
+    Button exit;
+    Button language;
+    Button english;
+    Button romanian;
+
     Button settings;
     Button fullscreen;
     Button fullscreenOption;
@@ -107,55 +78,102 @@ public:
     Button slider;
     Button sliderArrow;
     Button pieceSpeedValue;
+
     Button themes;
-    Button classic;
-    Button stylish;
+    Button board1;
+    Button board2;
+    Button board3;
+    Button pieceSet1;
+    Button pieceSet2;
+    Button pieceSet3;
+
     Button newGame;
-    Button exitGame;
+    Button playerVsPlayer;
+    Button playerVsComputer;
+    Button online;
+    Button offline;
+    Button createGame;
+    Button joinGame;
+    Button playAsWhite;
+    Button playAsBlack;
+    Button chooseColor;
+    Button gameId;
+    Button id;
+    Button enterGameId;
+    Button inputId;
+    Button errorMessage;
 
-    sf::Texture backgroundTexture;
-    sf::Texture arrowTexture;
-    sf::Texture sliderArrowTexture;
-    sf::Texture whitePawn;
-    sf::Texture whiteKnight;
-    sf::Texture whiteBishop;
-    sf::Texture whiteRook;
-    sf::Texture whiteQueen;
-    sf::Texture whiteKing;
-    sf::Texture blackPawn;
-    sf::Texture blackKnight;
-    sf::Texture blackBishop;
-    sf::Texture blackRook;
-    sf::Texture blackQueen;
-    sf::Texture blackKing;
-
+    // Create and initialize the window
     MainWindow(int width, int height, const char* title);
+
+    // Set window icons
     void SetIcon();
+
+    // Updates the piece textures with the given chess set pieces
     void UpdateTextures();
+
+    // Gets resources filepath and initializes them
     void InitializeTexturesAndResources();
+
+    // Initializes the user interface and applies default settings
     void InitializeUIAndSettings();
-    void InitializeChessboard();
-    void InitializePiece(Color color, Type type, int x, int y);
+
+    // Calculates the layout of the elements within the window
     void CalculateLayout();
+
+    // The main loop
     void GameLoop();
+
+    // Draws the chessboard, pieces and UI
     void Paint();
+
+    // Calculates the average frame rate
     void UpdateFrameRate();
+
+    // Performs the visual transition of the fps counter
     void FpsTransition();
-    void Move();
+
+    // Performs the visual movement of the pieces
+    void MoveTransition();
+
+    // Switches from Windowed to Fullscreen and vice versa
     void SwitchScreenMode();
+
+    // Called when the mouse moves within the window
     void OnMouseMove(int xPos, int yPos);
+
+    // Called when the mouse left button is pressed 
     void OnMouseDown(int xPos, int yPos);
+
+    // Called when the mouse left button is released
     void OnMouseUp(int xPos, int yPos);
+
+    // Called when the keyboard Escape key is pressed
     void OnEscapeDown();
-    void FindPossibleMoves(int x, int y);
+
+    // Called when window receives text input
+    void TextEntered(unsigned int character);
+
+    // Draws across the board the selected piece possible moves
     void ShowPossibleMoves();
-    void ClearPossibleMoves();
-    void CheckIfMoveExposesKing(sf::Vector2i before, sf::Vector2i after, Color kingColor);
-    bool CheckBoardState(Color color);
-    void CheckEndgame(Color color);
-    sf::Vector2i GetTile(int xPos, int yPos);
-    sf::Vector2i CurrentlyHoveredTile(int x, int y, bool set);
-    sf::Vector2i CurrentlyHeldTile(int x, int y, bool set);
-    sf::Vector2i CurrentlyClickedTile(int x, int y, bool set);
-    template <typename T> std::string toStr(const T& t);
+
+    // Check and execute opponent move in online mode
+    void Online();
+
+    // Returns the row and column of the board relative to window coordinates
+    // Returns (-1,-1) if outside the board
+    sf::Vector2i GetSquare(int xPos, int yPos);
+
+    // Returns the currently hovered piece or (-1,-1) if none hovered
+    // Can save the currently hovered piece as (x,y) according to the (set) flag
+    sf::Vector2i CurrentlyHoveredSquare(int x, int y, bool set);
+
+    // Returns the currently held piece or (-1,-1) if none are being held
+    // Can save the currently held piece as (x,y) according to the (set) flag
+    sf::Vector2i CurrentlyHeldSquare(int x, int y, bool set);
+
+    // Returns the currently selected piece or (-1,-1) if none selected
+    // Can save the currently selected piece as (x,y) according to the (set) flag
+    // If updated, calls FindPossibleMoves for the newly selected piece
+    sf::Vector2i CurrentlySelectedSquare(int x, int y, bool set);
 };

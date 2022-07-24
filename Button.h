@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SFML/Graphics.hpp"
+#include <SFML/Graphics.hpp>
 #include "RoundedRectangleShape.h"
 
 class Button : public sf::Transformable, public sf::Drawable
@@ -14,7 +14,7 @@ public:
     };
 
     Button(float width = 0.f, float height = 0.f, float radius = 1.f);
-    void setTextString(const std::string& string);
+    void setTextString(const sf::String& string);
     void setTextFont(const std::string& fontPath);
     void setTextSize(float percentage);
     void setTextFillColor(const sf::Color& color);
@@ -25,6 +25,7 @@ public:
     void setOutlineColor(const sf::Color& color);
     void setOutlineThickness(float thickness);
     void setTexture(const sf::Texture* texture);
+    void setTextureRect(const sf::IntRect& rect);
     void setSize(const sf::Vector2f& size);
     void setCornerRadius(float radius);
     void setCornerPointCount(unsigned int count);
@@ -46,7 +47,7 @@ public:
     const sf::Vector2f& getSize() const;
     float getCornerRadius() const;
     unsigned int getPointCount() const;
-    const sf::Vector2f& getPosition() const;
+    sf::Vector2f getPosition() const;
     sf::FloatRect getTextLocalBounds() const;
     sf::FloatRect getTextGlobalBounds() const;
     sf::FloatRect getLocalBounds() const;

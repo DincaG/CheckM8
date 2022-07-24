@@ -19,7 +19,7 @@ Button::Button(float width, float height, float radius)
     setTextSize(relativeCharacterSize);
 }
 
-void Button::setTextString(const std::string& string)
+void Button::setTextString(const sf::String& string)
 {
     text.setString(string);
     centerText();
@@ -34,7 +34,7 @@ void Button::setTextFont(const std::string& fontPath)
 
 void Button::setTextSize(float percentage)
 {
-    text.setCharacterSize(box.getLocalBounds().height * (percentage / 100.f));
+    text.setCharacterSize(static_cast<unsigned int>(box.getLocalBounds().height * (percentage / 100.f)));
     relativeCharacterSize = percentage;
     centerText();
 }
@@ -77,6 +77,11 @@ void Button::setOutlineThickness(float thickness)
 void Button::setTexture(const sf::Texture* texture)
 {
     box.setTexture(texture, true);
+}
+
+void Button::setTextureRect(const sf::IntRect& rect)
+{
+    box.setTextureRect(rect);
 }
 
 void Button::setSize(const sf::Vector2f& size)
@@ -190,7 +195,7 @@ unsigned int Button::getPointCount() const
     return box.getPointCount();
 }
 
-const sf::Vector2f& Button::getPosition() const
+sf::Vector2f Button::getPosition() const
 {
     sf::Transform transform{ getTransform() };
     return applyChanges(transform).transformPoint(getOrigin());
@@ -272,12 +277,12 @@ void Button::setAction(void (*action)(void*))
 
 void Button::onHover(int x, int y)
 {
-    if (!hovered && getGlobalBounds().contains(x, y))
+    if (!hovered && getGlobalBounds().contains((float)x, (float)y))
     {
         if (onHoverBehavior) onHoverBehavior(this, Transition::In, userData);
         hovered = true;
     }
-    else if (hovered && !getGlobalBounds().contains(x, y))
+    else if (hovered && !getGlobalBounds().contains((float)x, (float)y))
     {
         if (onHoverBehavior) onHoverBehavior(this, Transition::Out, userData);
         hovered = false;
@@ -325,7 +330,7 @@ sf::Transform& Button::applyChanges(sf::Transform& transform) const
     }
     else if (parentWindow)
     {
-        parentSize = sf::Vector2f(parentWindow->getSize().x, parentWindow->getSize().y);
+        parentSize = sf::Vector2f((float)parentWindow->getSize().x, (float)parentWindow->getSize().y);
     }
     if (dynamicallyPositioned && parentSize != sf::Vector2f{ -1.f, -1.f })
     {
