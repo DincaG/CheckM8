@@ -1,6 +1,6 @@
 #include "MainWindow.h"
-#include <Windows.h>
-#include <Windowsx.h>
+#include <windowsx.h>
+#include <curl/curl.h>
 
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -11,6 +11,18 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         case WM_CLOSE:
         {
+            win->mode = MainWindow::Mode::Normal;
+            win->networkingThread.wait();
+            delete win->session;
+            for (int i{ 0 }; i < 8; i++)
+            {
+                for (int j{ 0 }; j < 8; j++)
+                {
+                    delete win->root->chessboard[i][j];
+                    win->root->chessboard[i][j] = nullptr;
+                }
+            }
+            delete win->root;
             DestroyWindow(win->window.getSystemHandle());
             return 0;
         }
@@ -35,36 +47,21 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
             RECT rect{};
             GetWindowRect(hwnd, &rect);
-            int x{ rect.left };
-            int y{ rect.top };
-            int cx{ rect.right - rect.left };
-            int cy{ rect.bottom - rect.top };
 
-            int offset{};
+            int offset{ 0 };
             if (width % 8 < 5) offset = (width % 8) * -1;
             else offset = 8 - width % 8;
 
-            if (win->edge == WMSZ_TOPLEFT || win->edge == WMSZ_LEFT || win->edge == WMSZ_BOTTOMLEFT)
-            {
-                SetWindowPos(hwnd, HWND_TOP, x - offset, y, cx + offset, cy, NULL);
-            }
-            if (win->edge == WMSZ_TOPRIGHT || win->edge == WMSZ_RIGHT || win->edge == WMSZ_BOTTOMRIGHT)
-            {
-                SetWindowPos(hwnd, HWND_TOP, x, y, cx + offset, cy, NULL);
-            }
+            if (win->edge == WMSZ_TOPLEFT || win->edge == WMSZ_LEFT || win->edge == WMSZ_BOTTOMLEFT) rect.left -= offset;
+            if (win->edge == WMSZ_TOPRIGHT || win->edge == WMSZ_RIGHT || win->edge == WMSZ_BOTTOMRIGHT) rect.right += offset;
 
             if (height % 8 < 5) offset = (height % 8) * -1;
             else offset = 8 - height % 8;
 
-            if (win->edge == WMSZ_TOPLEFT || win->edge == WMSZ_TOP || win->edge == WMSZ_TOPRIGHT)
-            {
-                SetWindowPos(hwnd, HWND_TOP, x, y - offset, cx, cy + offset, NULL);
-            }
-            if (win->edge == WMSZ_BOTTOMLEFT || win->edge == WMSZ_BOTTOM || win->edge == WMSZ_BOTTOMRIGHT)
-            {
-                SetWindowPos(hwnd, HWND_TOP, x, y, cx, cy + offset, NULL);
-            }
+            if (win->edge == WMSZ_TOPLEFT || win->edge == WMSZ_TOP || win->edge == WMSZ_TOPRIGHT) rect.top -= offset;
+            if (win->edge == WMSZ_BOTTOMLEFT || win->edge == WMSZ_BOTTOM || win->edge == WMSZ_BOTTOMRIGHT) rect.bottom += offset;
 
+            SetWindowPos(hwnd, HWND_TOP, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, NULL);
             return 0;
         }
 
@@ -110,6 +107,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             return 0;
         }
 
+        case WM_CHAR:
+        {
+            win->TextEntered(static_cast<unsigned int>(wParam));
+            return 0;
+        }
+
         case WM_NCMOUSEMOVE:
         {
             PostMessage(hwnd, WM_MOUSEMOVE, MAKELPARAM(static_cast<int>(win->window.getSize().x) + 1, static_cast<int>(win->window.getSize().y) + 1), NULL);
@@ -149,6 +152,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 int main()
 {
+    curl_global_init(CURL_GLOBAL_ALL);
     MainWindow* win{ new MainWindow(1000, 800, "CheckM8") };
     SetWindowLongPtr(win->window.getSystemHandle(), GWL_WNDPROC, (LONG_PTR)&WndProc);
     SetWindowLongPtr(win->window.getSystemHandle(), GWLP_USERDATA, (LONG_PTR)win);
@@ -166,5 +170,6 @@ int main()
     }
 
     delete win;
+    curl_global_cleanup();
     return 0;
 }
